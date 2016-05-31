@@ -188,8 +188,18 @@ class Transport
                         $info = unpack('Slength/a4crc', $s->read(6));
                         $part = $s->read($info['length']);
                         $crc = hash('crc32b', $part, true);
-                        if ($info['crc'] !==  $crc) {
-                            throw TransportException::checksumMisMatch($info['crc'], $crc);
+                        if ($info['crc'] !== $crc) {
+                            /*
+                             * bug-fix for php5.3
+                             * @todo remove on php-version change
+                             */
+                            $sFirst = bin2hex($info['crc']);
+                            $sSecond = bin2hex($crc);
+                            if (strlen($sFirst) === strlen($sSecond)) {
+                                throw TransportException::checksumMisMatch($info['crc'], $crc);
+                            } elseif (strpos($sSecond, $sFirst) === false) {
+                                throw TransportException::checksumMisMatch($info['crc'], $crc);
+                            }
                         }
                         $data .= $part;
                     }
